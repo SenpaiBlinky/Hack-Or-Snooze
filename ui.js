@@ -1,4 +1,4 @@
-$(async function() {
+$(async function () {
   // cache some selectors we'll be using quite a bit
   const $allStoriesList = $("#all-articles-list");
   const $submitForm = $("#submit-form");
@@ -14,6 +14,7 @@ $(async function() {
   const $navSubmit = $("#nav-submit");
   const $navFavorites = $("#nav-favorites");
   const $navStories = $("#nav-stories");
+  const $favoritesList = $("#favorited-articles");
 
   // global storyList variable
   let storyList = null;
@@ -28,7 +29,7 @@ $(async function() {
    *  If successfully we will setup the user instance
    */
 
-  $loginForm.on("submit", async function(evt) {
+  $loginForm.on("submit", async function (evt) {
     evt.preventDefault(); // no page-refresh on submit
 
     // grab the username and password
@@ -48,7 +49,7 @@ $(async function() {
    *  If successfully we will setup a new user instance
    */
 
-  $createAccountForm.on("submit", async function(evt) {
+  $createAccountForm.on("submit", async function (evt) {
     evt.preventDefault(); // no page refresh
 
     // grab the required fields
@@ -67,7 +68,7 @@ $(async function() {
    * Log Out Functionality
    */
 
-  $navLogOut.on("click", function() {
+  $navLogOut.on("click", function () {
     // empty out local storage
     localStorage.clear();
     // refresh the page, clearing memory
@@ -78,7 +79,7 @@ $(async function() {
    * Event Handler for Clicking Login
    */
 
-  $navLogin.on("click", function() {
+  $navLogin.on("click", function () {
     // Show the Login and Create Account Forms
     $loginForm.slideToggle();
     $createAccountForm.slideToggle();
@@ -89,25 +90,26 @@ $(async function() {
    * Event Handler for Submit Story Button
    */
 
-  $navSubmit.on("click", function() {
+  $navSubmit.on("click", function () {
     // Show the Login and Create Account Forms
     $submitForm.slideToggle();
   });
 
-    /**
-   * Event Handler for Submit New Story Form Button
-   */
+  /**
+ * Event Handler for Submit New Story Form Button
+ */
 
-  $submitForm.on("submit", async function() {
+  $submitForm.on("submit", async function () {
     // Show the Login and Create Account Forms
     let $submitAuthor = $("#author").val();
     let $submitTitle = $("#title").val();
     let $submitUrl = $("#url").val();
 
-    let $submitObject = { 
-        "author": $submitAuthor,
-        "title": $submitTitle, 
-        "url": $submitUrl };
+    let $submitObject = {
+      "author": $submitAuthor,
+      "title": $submitTitle,
+      "url": $submitUrl
+    };
 
     await storyList.addStory(currentUser, $submitObject);
     await generateStories();
@@ -115,15 +117,15 @@ $(async function() {
 
 
   /**
-   * Event Handler for Clicking Login
+   * Event Handler for Nav Favorites
    */
 
-  // $navLogin.on("click", function() {
-  //   // Show the Login and Create Account Forms
-  //   $loginForm.slideToggle();
-  //   $createAccountForm.slideToggle();
-  //   $allStoriesList.toggle();
-  // });
+  $navFavorites.on("click", function () {
+    // Show the Login and Create Account Forms
+    $allStoriesList.hide();
+    $favoritesList.show();
+    generateFavorites();
+  });
 
   /**
    * Event Handler for Clicking Login
@@ -142,7 +144,7 @@ $(async function() {
    * Event handler for Navigation to Homepage
    */
 
-  $("body").on("click", "#nav-all", async function() {
+  $("body").on("click", "#nav-all", async function () {
     hideElements();
     await generateStories();
     $allStoriesList.show();
@@ -208,6 +210,42 @@ $(async function() {
       const result = generateStoryHTML(story);
       $allStoriesList.append(result);
     }
+
+    $allStoriesList.on('click', '.fa-star', starButtonHandler);
+  }
+
+  async function starButtonHandler(evt) {
+    const storyId = evt.target.id.slice(5, evt.target.id.length);
+    // Make evt.target into jQuery object
+    // "use strict" above js file to make sure you don't accidently initialize global variables
+    const starButton = $(evt.target);
+    // let starClass = starButton.classList.value;
+
+    // hasClass has to have comma separated classes to check for multiple classes
+    if (starButton.hasClass("far", "fa-star")) {
+      starButton.removeClass("far");
+      starButton.addClass("fas");
+      await currentUser.addFav(currentUser.username, storyId, currentUser.loginToken);
+    } else {
+      starButton.removeClass("fas");
+      starButton.addClass("far");
+    }
+  }
+
+
+
+  /**
+   * A function to render HTML for an individual favorite Story instance
+   */
+  async function generateFavorites() {
+    currentUser = await currentUser.updateFav(currentUser.loginToken, currentUser.username);
+
+    // loop through all of our favorite stories and generate HTML for them
+    for (let favStory of currentUser.favorites) {
+      console.log(favStory);
+      const result = generateStoryHTML(favStory);
+      $favoritesList.append(result);
+    }
   }
 
   /**
@@ -217,9 +255,13 @@ $(async function() {
   function generateStoryHTML(story) {
     let hostName = getHostName(story.url);
 
+    // let star = $('<i class="far fa-star"></i>');
+    // star.on('click', function () {console.log('hi')});
+
     // render story markup
     const storyMarkup = $(`
       <li id="${story.storyId}">
+        <i class="far fa-star" id='star-${story.storyId}'></i>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>

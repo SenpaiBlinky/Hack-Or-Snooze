@@ -174,6 +174,34 @@ class User {
     existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
     return existingUser;
   }
+
+  async addFav(username, storyId, loginToken) {
+    let response = await axios.post(`${BASE_URL}/users/${username}/favorites/${storyId}`, 
+    {
+      token: loginToken
+    });
+    return response;
+  }
+
+  async updateFav(token, username) {
+    // call the API
+    const response = await axios.get(`${BASE_URL}/users/${username}`, {
+      params: {
+        token
+      }
+    });
+
+    // instantiate the user from the API information
+    const existingUser = new User(response.data.user);
+
+    // attach the token to the newUser instance for convenience
+    existingUser.loginToken = token;
+
+    // instantiate Story instances for the user's favorites and ownStories
+    existingUser.favorites = response.data.user.favorites.map(s => new Story(s));
+    existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
+    return existingUser;
+  }
 }
 
 /**
